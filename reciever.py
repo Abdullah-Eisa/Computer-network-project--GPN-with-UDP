@@ -17,22 +17,23 @@ sock.bind((ip, PORT))
 
 
 seqnum = 1
-MSS = 200
+MSS = 100
 
 
-f = open("image.png", "wb")
+f = open("message.png", "wb")
 
 
 
 print('Recieving')
 while True:
-    data, addr = sock.recvfrom(MSS) # buffer size is 1024 bytes
+    data, addr = sock.recvfrom(MSS) 
+    #data = pickle.loads(data)
     print("received message: %s" % data)
     f.write(data)
 
-    if not(data):# if file ended
-      break
+    #if (data.decode()=='END'):# if file ended
+     # break
 
 f.close()
-
-print(f'File size is : {os.path.getsize(f)}')
+print('closed connection')
+#print(f'File size is : {os.path.getsize(f)}')

@@ -8,16 +8,15 @@ filename = sys.argv[1]  # file that we want to send
 
 rec_ip = sys.argv[2]  # second argument after file name
 rec_port = sys.argv[3] # third argument after ip
-MSS = 200  # Maximum Segment size, could be changed
-Window_size = 4 # arbitrary number
-timeout = 5  # arbitrary number 
+MSS = 100  # Maximum Segment size, could be changed
+
 
 # _________________________________________________
 
-
+Window_size = 4 # arbitrary number
+timeout = 5  # arbitrary number 
 base = 1
 SeqNum = 1
-Window = []
 data_finished = False
 
 #_______________________-
@@ -36,14 +35,19 @@ packets = []
 print(f'File size is : {os.path.getsize(filename)}')
 
 
-while data: 
+while not(data_finished): 
 	#data = [str(SeqNum) ,data]
 	#data_encoded = [x.encode('utf-8') for x in data]
 	#data=pickle.dumps(data)
 	Sender_socket.send(data)
 	data = f.read(MSS)
-	if not(data):
-		break
+
+
+
+
+	if not(data): # if file ended
+		Sender_socket.send('END'.encode())
+		data_finished= True
 
 
 
@@ -53,7 +57,25 @@ while data:
 
 Sender_socket.close()
 print("closed Connection")
-# create socket 
-# read mss from file
-# send n of pkts 
-# 
+
+
+
+'''
+create socket 
+
+read file
+
+while not done or window :
+	if (nextSeqnum < base + window_size):
+		read MSS
+		send MSS
+		neqSeqNum =+ 1
+
+	"recieve ACK"
+	Ack = socket_recieve  (int)
+	newbase = ack - oldbase (number of steps the window moves)
+
+
+
+
+'''
