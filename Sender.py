@@ -10,14 +10,15 @@ serversocket.bind((gethostbyname(gethostname()),0))
 print(f"Your host ip and port is {serversocket.getsockname()}")
 
 win_size = 4
-max_seg_size = 1024
-message, address = serversocket.recvfrom(1024)
+max_seg_size = 10000
+message, address = serversocket.recvfrom(max_seg_size)
 file = open(message.decode(), "rb")
 file_size = path.getsize(message.decode())
 num_chunks = ceil(file_size/(max_seg_size-3))
 window = deque()
 chunks_read = 0
 base = 0
+num_retrans = 0
 for i in range(min(num_chunks,win_size)):
     window.append(file.read(max_seg_size-3))
     chunks_read += 1
@@ -45,3 +46,5 @@ while True:
         for i in range(len(window)):
             if i+base == num_chunks - 1: endbit = b'\xff'
             serversocket.sendto((i+base).to_bytes(2,'big')+window[i]+endbit, address)
+        num_retrans += 1
+print(f"Number of retransmittions: {num_retrans}")  
