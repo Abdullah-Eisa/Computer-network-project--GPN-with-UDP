@@ -21,14 +21,14 @@ for i in range(3):
         received, address = clientsocket.recvfrom(max_seg_size)
         if received:
             packid = -1
-            file = open(sys.argv[1], "wb")
+            file = open('output.jpg', "wb")
             clientsocket.settimeout(3)
             while True:
                 if received[:2] == (packid+1).to_bytes(2, 'big'):
                     file.write(received[2:-1])
                     packid += 1
                     total_bytes += len(received[2:-1])
-                    timestamp.append(time())
+                    timestamp.append(time()-start)
                     ids.append(packid)
                     print(f"Received packet in order (ID {packid})") 
                 else: print(f"Received packet out of order (ID {int.from_bytes(received[:2],'big')})")
@@ -42,13 +42,19 @@ for i in range(3):
                     break
             end = time()
             # change format
-            print(f"Start time: {start} seconds, End time: {end} seconds")
             elapsed = end- start
+            print(f"Start time: {round(start,2)} seconds, End time: {round(end,2)} seconds")
+            
             speed = int((packid+1)/(end-start))
-            print(f"The file took on average: {speed} packets/sec, {elapsed} seconds")
+            print(f"The file took on average: {speed} packets/sec, {round(elapsed,2)} seconds")
             print(f"Total number of packets: {packid+1}, total number of bytes: {total_bytes}")
+            timestamp = [x*1000 for x in timestamp]
             plt.plot(timestamp, ids)
+            plt.xlabel('Time in milliseconds')
+            plt.ylabel('Pkt id')
+            plt.title('Transmission Graph')
             plt.show()
+
             file.close()
             break
     except ConnectionResetError: pass
