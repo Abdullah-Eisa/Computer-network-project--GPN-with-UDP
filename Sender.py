@@ -3,17 +3,18 @@ from os import path
 from math import ceil
 from collections import deque
 from threading import Thread
+import sys
 
 serversocket = socket(AF_INET, SOCK_DGRAM)
 print("Started Server UDP File Transfer!")
 serversocket.bind((gethostbyname(gethostname()),0))
 print(f"Your host ip and port is {serversocket.getsockname()}")
-
+address = (sys.argv[2],int(sys.argv[3]))
 win_size = 4
-max_seg_size = 10000
-message, address = serversocket.recvfrom(max_seg_size)
-file = open(message.decode(), "rb")
-file_size = path.getsize(message.decode())
+max_seg_size = 1024
+timeout_val = 0.05
+file = open(sys.argv[1], "rb")
+file_size = path.getsize(sys.argv[1])
 num_chunks = ceil(file_size/(max_seg_size-3))
 window = deque()
 chunks_read = 0
@@ -22,7 +23,7 @@ num_retrans = 0
 for i in range(min(num_chunks,win_size)):
     window.append(file.read(max_seg_size-3))
     chunks_read += 1
-serversocket.settimeout(0.05)
+serversocket.settimeout(timeout_val)
 endbit = b'\x00'
 for i in range(len(window)):
     if i == num_chunks - 1: endbit = b'\xff'
@@ -41,7 +42,7 @@ while True:
             chunks_read += 1
             base = min(ack_num+1,num_chunks-win_size)
             if chunks_read == num_chunks: endbit = b'\xff'
-            serversocket.sendto((chunks_read-1).to_bytes(2,'big')+window[-1]+endbit, address)
+            serversocket.sendto((window[win_size-1]).to_bytes(2,'big')+window[-1]+endbit, address)
     except timeout: 
         for i in range(len(window)):
             if i+base == num_chunks - 1: endbit = b'\xff'
