@@ -83,3 +83,64 @@ while True:
     txt.reverse()
     filename = txt.pop()
     address = (txt.pop(), int(txt.pop()))
+
+    
+#________________________________________________________________________________________________________________________
+
+    
+def simulated_attack():
+    
+    '''
+    no trailer
+    if id exceeds 2^ 16 , reset it
+    
+    '''
+    
+    serversocket = socket(AF_INET, SOCK_DGRAM)
+    serversocket.bind((gethostbyname(gethostname()),0))
+
+
+    while True:
+        
+        serversocket.settimeout(timeout_val)
+        for i in range(len(fileid[nextid]['window'])):
+            serversocket.sendto(fileid[nextid]['window'][i], address)
+        print(f"Started transmitting file \"{filename}\" (ID {nextid}) to address {address}")  
+        retries = 0
+        while True:
+            try:
+                message, address = serversocket.recvfrom(4)
+                ack_num = int.from_bytes(message[:2],'big')
+                if ack_num == fileid[nextid]['num_chunks']:
+                    fileid[nextid]['file'].close()
+                    break
+                min1 = ack_num-fileid[nextid]['base']+1
+                min2 = fileid[nextid]['num_chunks']-fileid[nextid]['chunks_read']
+                for i in range(min(min1,min2)):
+                    fileid[nextid]['window'].popleft()
+                    if fileid[nextid]['chunks_read'] < fileid[nextid]['num_chunks']:
+                        segment = (fileid[nextid]['chunks_read']+1).to_bytes(2,'big')
+                        segment += (nextid).to_bytes(2, 'big')
+                        segment += fileid[nextid]['file'].read(max_seg_size-4)
+                        if fileid[nextid]['num_chunks']-fileid[nextid]['chunks_read'] == 1:
+                            endbit = b'\xff\xff'
+                        else:
+                            endbit = b'\x00\x00'
+                        segment += endbit
+                        fileid[nextid]['window'].append(segment)
+                        fileid[nextid]['chunks_read'] += 1
+                        serversocket.sendto(fileid[nextid]['window'][-1], address)
+                fileid[nextid]['base'] = min(ack_num,fileid[nextid]['num_chunks']-win_size)+1
+                retries = 0
+            except timeout:
+                if retries == 3: break
+                retries += 1
+                for i in range(len(fileid[nextid]['window'])):
+                    serversocket.sendto(fileid[nextid]['window'][i], address)
+                fileid[nextid]['num_retrans'] += 1
+
+    
+    
+    
+    
+    
