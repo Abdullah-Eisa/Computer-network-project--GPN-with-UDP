@@ -16,7 +16,8 @@ clientsocket = socket(AF_INET, SOCK_DGRAM)
 print("Started Receiver UDP File Transfer!")
 clientsocket.bind((gethostbyname(gethostname()),0))
 print(f"Your host ip and port is {clientsocket.getsockname()}")
-max_seg_size = 1024
+max_seg_size = 65536 # set it to most maximum
+file = [None] * 65536
 while True:
     total_bytes = 0
     total_packets = 0
@@ -43,17 +44,18 @@ while True:
             if received[:2] == (packid+1).to_bytes(2, 'big'): 
                 packid += 1
                 print(f"Received packet in order (ID {packid})") 
-                if received[-2:] == b'\xff\xff':
-                    print("Client UDP File Transfer has successfully finished!")
-                    break
                 if packid == 0:
-                    newfilename = received[2:-2].decode()
+                    newfilename = received[4:-2].decode()
                 else: 
-                    file.write(received[2:-2])
+                    file.write(received[4:-2])
                 ids.append(packid)
                 timestamp.append(time())
+                if received[-2:] == b'\xff\xff':
+                    print("Receiver UDP File Transfer has successfully finished!")
+                    clientsocket.sendto((packid).to_bytes(2,'big')+b'\x00\x00',address) # reached or not, i will finish!
+                    break
             else: print(f"Received packet out of order (ID {int.from_bytes(received[:2],'big')})")
-        if packid>=0: clientsocket.sendto((packid).to_bytes(2,'big'),address)
+        if packid>=0: clientsocket.sendto((packid).to_bytes(2,'big')+b'\x00\x00',address)
         try: received, address = clientsocket.recvfrom(max_seg_size)
         except timeout:
             print("Server connection is lost (timeout)")
